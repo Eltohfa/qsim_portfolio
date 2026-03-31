@@ -24,12 +24,26 @@
       </nav>
       <hr>
 
-    <h1>Mohamed Eltohfa</h1>
+    <!-- <h1>Mohamed Eltohfa</h1>
 
     <p>
     PhD in Computational AMO Physics.<br>
     I build efficient simulations of quantum systems and high-performance scientific software.
+    </p> -->
+
+<div style="display: flex; align-items: center; gap: 20px;">
+
+<img src="profile.jpg" width="150" style="border-radius: 50%;">
+
+<div>
+    <h1>Mohamed Eltohfa</h1>
+    <p>
+    PhD in Computational AMO Physics.<br>
+    I build efficient simulations of quantum systems and high-performance scientific software.
     </p>
+</div>
+
+</div>
 
     <h2>Highlights</h2>
     <ul>
@@ -37,83 +51,48 @@
     <li>High-performance computing</li>
     <li>Numerical methods & optimization</li>
     </ul>
-<!-- <h1>Projectile Motion Simulation</h1>
 
-<p>
-Interactive simulation of a projectile under gravity.
-Adjust angle and velocity.
-</p>
+    <h2>Publications</h2>
 
-<div class="controls">
-  <label>Angle (degrees): <span id="angleVal">45</span></label><br>
-  <input type="range" id="angle" min="0" max="90" value="45">
+    <p>
+    Full list on 
+    <a href="https://scholar.google.com/citations?user=vgIbhLQAAAAJ&hl=en" target="_blank">
+    Google Scholar
+    </a>
+    </p>
 
-  <br><br>
+    <ul>
+    <li>
+        <a href="https://journals.aps.org/pra/abstract/10.1103/qv4c-s9xw" target="_blank">
+        Effects of finite trapping on the decay, recoil, and decoherence of dark states of quantum emitter arrays
+        </a><br>
+        <em>Physcial Review A / 2025</em><br>
+        <span>Numerical simulation to describe parasitic motion of many atoms in atom arrays </span>
+    </li>
 
-  <label>Velocity (m/s): <span id="velVal">20</span></label><br>
-  <input type="range" id="velocity" min="1" max="50" value="20">
-</div>
+    <li>
+        <a href="https://journals.aps.org/pre/abstract/10.1103/PhysRevE.110.014114" target="_blank">
+        Simulations of classical three-body thermalization in one dimension
+        </a><br>
+        <em>Physcial Review A / 2024</em><br>
+        <span>Numerical simulation of many particles living on ring to arrive at their thermalization rate </span>
+    </li>
 
-<div id="plot"></div>
+    <li>
+        <a href="https://fount.aucegypt.edu/capstone/23/" target="_blank">
+        Quantum Simulation of Schrödinger's Equation
+        </a><br>
+        <span>Simulating quantum particles moving in 1D on a quantum computer</span>
+    </li>
 
-<script>
-const g = 9.81;
-
-function computeTrajectory(v0, thetaDeg) {
-  const theta = thetaDeg * Math.PI / 180;
-
-  const t_flight = (2 * v0 * Math.sin(theta)) / g;
-  const t = [];
-  const x = [];
-  const y = [];
-
-  const N = 100;
-
-  for (let i = 0; i <= N; i++) {
-    let ti = (i / N) * t_flight;
-    t.push(ti);
-
-    let xi = v0 * Math.cos(theta) * ti;
-    let yi = v0 * Math.sin(theta) * ti - 0.5 * g * ti * ti;
-
-    x.push(xi);
-    y.push(yi);
-  }
-
-  return { x, y };
-}
-
-function updatePlot() {
-  const angle = document.getElementById("angle").value;
-  const velocity = document.getElementById("velocity").value;
-
-  document.getElementById("angleVal").innerText = angle;
-  document.getElementById("velVal").innerText = velocity;
-
-  const traj = computeTrajectory(velocity, angle);
-
-  const data = [{
-    x: traj.x,
-    y: traj.y,
-    mode: "lines",
-    name: "trajectory"
-  }];
-
-  const layout = {
-    xaxis: { title: "x (m)" },
-    yaxis: { title: "y (m)" },
-    margin: { t: 20 }
-  };
-
-  Plotly.newPlot("plot", data, layout);
-}
-
-document.getElementById("angle").oninput = updatePlot;
-document.getElementById("velocity").oninput = updatePlot;
-
-// initial plot
-updatePlot();
-</script> -->
+    <li>
+        <a href="https://arxiv.org/abs/2603.04660" target="_blank">
+        Photon statistics in waveguide QED: II Exact solutions in a thermodynamic limit
+        </a><br>
+        <em>arXiv / 2026</em><br>
+        <span>Analytically and numerically describing the exponential enhancement of radiation in a desirable channel</span>
+    </li>
+    </ul>
 
 </body>
 </html>
