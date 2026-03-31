@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simulations</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Home</a> |
+  <a href="simulations.html">Simulations</a> |
+  <a href="resume.html">Resume</a>
+</nav>
+<hr>
+
+<h1>Collective Emission from N Two-Level Atoms</h1>
+
+<p>
+This is a simple example of how atoms can collectively superadiate in a desired channel even in the presence of loss to undesirable channels. For details, refer to our paper on the arXiv: <a href="https://arxiv.org/pdf/2603.04660" target="_blank">https://arxiv.org/pdf/2603.04660</a>.
+<hr>
+We simulate N two-level atoms initialized in the fully excited state.
+Each atom emits independently into free space at rate (1−β)Γ₀ and collectively
+into a waveguide at rate βΓ₀ as shown in the following schematic. As N increases, the normalized emitted pulse
+into the waveguide converges to a universal shape. The parameter β controls the fraction of emission into the waveguide as shown in the schematic, and the convergence to the universal shape is faster for larger β.
+
+<br><br>
+<img src="fig_intro_schematic.png" width="600">
+<br><br>
+
+The following plot shows the normalized photon emission rate into the waveguide as a function of normalized time as N increases. 
+
+<br><br>
+<img src="convergence.png" width="600">
+<br><br>
+
+You can adjust the parameters N and β using the sliders below to see how the emission pulse evolves.
+
+<div>
+  <label>N (power of 2): <span id="Nval">10</span></label><br>
+  <input type="range" id="Nslider" min="5" max="25" value="10">
+</div>
+
+<div>
+  <label>β: <span id="betaval">0.01</span></label><br>
+  <input type="range" id="betaslider" min="0.001" max="0.1" step="0.001" value="0.01">
+</div>
+
+<div id="plot"></div>
+
+<script>
+function system(Y, N, beta) {
+  const g = N * beta;
+  const scale = g;
+
+  const [x, y, z] = Y;
+
+  const dx = (-x - g*y + beta*y) / scale;
+  const dy = (2*g*x*y - 4*beta*x*y - (g+1)*y + 2*beta*y - beta*x + 2*beta*z) / scale;
+  const dz = (-2*g*x*y + 4*beta*x*y - 2*z) / scale;
+
+  return [dx, dy, dz];
+}
+
+// RK4 integrator
+function integrate(N, beta) {
+  const tf = 2 * Math.log(N);
+  const steps = 500;
+  const dt = tf / steps;
+
+  let t = [];
+  let power = [];
+
+  let Y = [1, 0, 1];
+
+  for (let i = 0; i <= steps; i++) {
+    const ti = i * dt;
+
+    const k1 = system(Y, N, beta);
+    const k2 = system(Y.map((v,j)=>v+0.5*dt*k1[j]), N, beta);
+    const k3 = system(Y.map((v,j)=>v+0.5*dt*k2[j]), N, beta);
+    const k4 = system(Y.map((v,j)=>v+dt*k3[j]), N, beta);
+
+    Y = Y.map((v,j)=>v + dt*(k1[j]+2*k2[j]+2*k3[j]+k4[j])/6);
+
+    const x = Y[0];
+    const y = Y[1];
+
+    const p = beta*(N*x + N*(N-1)*y);
+
+    t.push(ti / Math.log2(N));
+    power.push(p / (N*N*beta));
+  }
+
+  return {t, power};
+}
+
+function update() {
+  const Npow = parseInt(document.getElementById("Nslider").value);
+  const beta = parseFloat(document.getElementById("betaslider").value);
+
+  document.getElementById("Nval").innerText = Npow;
+  document.getElementById("betaval").innerText = beta.toFixed(3);
+
+  const N = Math.pow(2, Npow);
+
+  const result = integrate(N, beta);
+
+  const data = [{
+    x: result.t,
+    y: result.power,
+    mode: "lines",
+    name: `N=2^${Npow}`
+  }];
+
+  const layout = {
+    xaxis: { title: "Normalized time" },
+    yaxis: { title: "Normalized photon rate" },
+    margin: { t: 30 }
+  };
+
+  Plotly.newPlot("plot", data, layout);
+}
+
+document.getElementById("Nslider").oninput = update;
+document.getElementById("betaslider").oninput = update;
+
+update();
+</script>
+
+
+</body>
+</html>

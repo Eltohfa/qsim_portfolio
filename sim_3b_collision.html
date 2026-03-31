@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <title>1D Collision</title>
+  <style>
+    canvas { border: 1px solid black; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html">Home</a> |
+  <a href="simulations.html">Simulations</a> |
+  <a href="resume.html">Resume</a>
+</nav>
+<hr>
+
+<h1>Three-body Collision in 1D</h1>
+
+<p>
+    The goal of this simulation is to show different types of collisions in 1D, and how the interaction potential affects the dynamics. In 1D, two-body collisions are constrained to simple velocity exchange due to conservation laws, while three-body collisions can lead to nontrivial velocity redistribution. By adjusting the interaction potential and initial conditions, you can explore these different collision outcomes. For more details, refer to our PRA paper: <a href="https://journals.aps.org/pre/abstract/10.1103/PhysRevE.110.014114" target="_blank">Phys. Rev. A 110, 014114 (2024)</a>.
+</p>
+<hr>
+
+<h2>Two-body Collision in 1D (Velocity Exchange)</h2>
+
+<p>
+Two particles interact via a repulsive potential ~1/rⁿ.
+They approach, interact, and exchange velocities. Now try changing n to see how the interaction potential affects the collision dynamics.
+</p>
+
+<label>n: <span id="nval">2</span></label>
+<input type="range" id="nslider" min="1" max="6" value="2">
+
+<br><br>
+
+<button onclick="startSim()">Start</button>
+<button onclick="stopSim()">Stop</button>
+<button onclick="resetSim()">Reset</button>
+
+<br><br>
+
+<canvas id="canvas" width="800" height="200"></canvas>
+
+<div id="velPlot" style="width:800px;height:300px;"></div>
+
+<hr>
+
+<h2>Three-Body Collision in 1D (Energy Mixing)</h2>
+
+<p>
+Unlike two-body collisions, three-body collisions in 1D are not constrained
+to simple velocity exchange. Energy and momentum conservation are insufficient
+to fix the outcome, leading to nontrivial redistribution of velocities. In the following simulation, try to change the initial position of the rightmost particle to see how the final velocities change in a nontrivial way. Specifically, the middle particle is initialized at rest, try to have it moving at the end of the simulation by adjusting the initial position of the rightmost particle. One curious case is the n = 2 case, where there is a peculiar symmetry in the interaction potential that leads to a simple velocity exchange outcome for all initial conditions, even in the three-body case, and thus the middle particle always ends up at rest. Try changing n to see how this symmetry is broken and the middle particle can end up moving after the collision.
+</p>
+
+<label>n: <span id="n2val">6</span></label>
+<input type="range" id="n2slider" min="1" max="6" value="6">
+
+
+<label>Right particle displacement: <span id="dval">11.0</span></label>
+<input type="range" id="dslider" min="9" max="11" step="0.1" value="11.0">
+
+<br><br>
+
+<button onclick="startSim3()">Start</button>
+<button onclick="stopSim3()">Stop</button>
+<button onclick="resetSim3()">Reset</button>
+
+<br><br>
+<canvas id="canvas3" width="900" height="200"></canvas>
+
+<div id="velPlot3" style="width:800px;height:600px;"></div>
+
+<p>
+    In contrast to the two-body case, three-body dynamics in 1D are not integrable,
+    allowing sensitive dependence on initial conditions and nontrivial velocity redistribution.
+</p>
+
+<hr>
+
+<h2>Three-Body Recombination (Lennard-Jones Potential)</h2>
+
+<p>
+Here particles interact via a Lennard-Jones potential, combining short-range
+repulsion and long-range attraction. This allows formation of bound states,
+illustrating three-body recombination.
+</p>
+
+<button onclick="startSimLJ()">Start</button>
+<button onclick="stopSimLJ()">Stop</button>
+<button onclick="resetSimLJ()">Reset</button>
+
+
+<canvas id="canvasLJ" width="800" height="200"></canvas>
+<div id="velPlotLJ" style="width:800px;height:300px;"></div>
+
+<p>
+    Energy can be redistributed such that two particles form a bound pair,
+    while the third carries away excess energy—this is three-body recombination.
+</p>
+
+<script>
+let running = false;
+let running3 = false;
+let runningLJ = false;
+let t = 0;
+let tData = [];
+let v1Data = [];
+let v2Data = [];
+
+function initPlot() {
+  const data = [
+    {x: [], y: [], mode: "lines", name: "v1"},
+    {x: [], y: [], mode: "lines", name: "v2"}
+  ];
+
+  Plotly.newPlot("velPlot", data, {
+    xaxis: {title: "time"},
+    yaxis: {title: "velocity"},
+    margin: {t: 20}
+  });
+}
+
+initPlot();
+
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+let n = 2;
+
+document.getElementById("nslider").oninput = function() {
+  n = parseInt(this.value);
+  document.getElementById("nval").innerText = n;
+  reset();
+};
+
+// initial conditions
+let x1, x2, v1, v2;
+
+function reset() {
+  x1 = -2;
+  x2 = 2;
+  v1 = 2;
+  v2 = -1;
+
+  t = 0;
+  tData = [];
+  v1Data = [];
+  v2Data = [];
+
+Plotly.newPlot("velPlot", [
+    {x: [], y: [], mode: "lines", name: "v1", line: {color: 'blue'}},
+    {x: [], y: [], mode: "lines", name: "v2", line: {color: 'red'}}
+], {
+    title: 'Velocity vs Time',
+    xaxis: {title: 'Time'},
+    yaxis: {title: 'Velocity'},
+    showlegend: true
+});
+}
+
+reset();
+
+const dt = 0.001;
+
+function force(r) {
+  const eps = 0.01;
+  return -n / Math.pow(Math.abs(r)+eps, n+1) * Math.sign(r);
+}
+
+function step() {
+
+
+  let r = x1 - x2;
+
+  let F = force(r);
+
+  // equal mass
+  v1 += -F * dt;
+  v2 += F * dt;
+
+  x1 += v1 * dt;
+  x2 += v2 * dt;
+t += dt;
+
+    tData.push(t);
+    v1Data.push(v1);
+    v2Data.push(v2);
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const center = canvas.width / 2;
+  const scale = 100;
+
+  let px1 = center + x1 * scale;
+  let px2 = center + x2 * scale;
+
+  // particles
+  ctx.beginPath();
+  ctx.arc(px1, 100, 10, 0, 2*Math.PI);
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(px2, 100, 10, 0, 2*Math.PI);
+  ctx.fill();
+
+  // velocity arrows
+  ctx.beginPath();
+  ctx.moveTo(px1, 80);
+  ctx.lineTo(px1 + v1*30, 80);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(px2, 80);
+  ctx.lineTo(px2 + v2*30, 80);
+  ctx.stroke();
+}
+
+let counter = 0;
+
+draw();
+function loop() {
+  if (!running) return;
+
+  for (let i=0; i<10; i++) step(); // speed up sim
+  draw();
+
+  counter++;
+if (counter % 5 === 0) {
+    Plotly.extendTraces("velPlot", {
+        x: [[t], [t]],
+        y: [[v1], [v2]]
+    }, [0,1]);
+}
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+function startSim() {
+  if (!running) {
+    running = true;
+    loop();
+  }
+}
+
+function stopSim() {
+  running = false;
+}
+
+function resetSim() {
+  running = false;
+  reset();   // your existing reset()
+  draw();    // redraw initial state
+}
+
+// ------------------- Three-body collision in 1D ------------------
+const canvas3 = document.getElementById("canvas3");
+const ctx3 = canvas3.getContext("2d");
+
+let x = [], v = [];
+let t3 = 0;
+
+let d = 11.0;
+let n3 = 6;
+document.getElementById("dslider").oninput = function() {
+  d = parseFloat(this.value);
+  document.getElementById("dval").innerText = d.toFixed(1);
+  reset3();
+};
+
+document.getElementById("n2slider").oninput = function() {
+  n3 = parseInt(this.value);
+  document.getElementById("n2val").innerText = n3;
+  reset3();
+};
+
+function reset3() {
+  // positions: symmetric, middle at 0
+  x = [-10, 0, d];
+  v = [1, 0, -1];
+  t3 = 0;
+
+  Plotly.newPlot("velPlot3", [
+    {x: [], y: [], mode: "lines", name: "v1"},
+    {x: [], y: [], mode: "lines", name: "v2"},
+    {x: [], y: [], mode: "lines", name: "v3"}
+    ], {
+    title: 'Velocity vs Time',
+    xaxis: {title: 'Time'},
+    yaxis: {title: 'Velocity'},
+    showlegend: true
+});
+}
+
+reset3();
+
+function force3(i) {
+  let F = 0;
+  for (let j=0; j<3; j++) {
+    if (i === j) continue;
+
+    let r = x[i] - x[j];
+    let eps = 0.01;
+
+    F += n3 / Math.pow(Math.abs(r)+eps, n3+1) * Math.sign(r);
+  }
+  return F;
+}
+
+const dt3 = 0.0001;
+let counter3 = 0;
+
+function step3() {
+  let F_old = [0,0,0];
+
+  // compute forces at current positions
+  for (let i=0; i<3; i++) {
+    F_old[i] = force3(i);
+  }
+
+  // update positions
+  for (let i=0; i<3; i++) {
+    x[i] += v[i]*dt3 + 0.5*F_old[i]*dt3*dt3;
+  }
+
+  // compute new forces
+  let F_new = [0,0,0];
+  for (let i=0; i<3; i++) {
+    F_new[i] = force3(i);
+  }
+
+  // update velocities
+  for (let i=0; i<3; i++) {
+    v[i] += 0.5*(F_old[i] + F_new[i]) * dt3;
+  }
+
+  t3 += dt3;
+}
+
+function draw3() {
+  ctx3.clearRect(0, 0, canvas3.width, canvas3.height);
+
+  const center = canvas3.width / 2;
+  const scale = 50;
+
+  for (let i=0; i<3; i++) {
+    let px = center + x[i]*scale;
+
+    ctx3.beginPath();
+    ctx3.arc(px, 100, 10, 0, 2*Math.PI);
+    ctx3.fill();
+
+    ctx3.beginPath();
+    ctx3.moveTo(px, 80);
+    ctx3.lineTo(px + v[i]*30, 80);
+    ctx3.stroke();
+  }
+}
+
+draw3();
+function loop3() {
+    if (!running3) return;
+  for (let i=0; i<100; i++) step3();
+  draw3();
+
+  counter3++;
+  if (counter3 % 5 === 0) {
+    Plotly.extendTraces("velPlot3", {
+      x: [[t3],[t3],[t3]],
+      y: [[v[0]],[v[1]],[v[2]]]
+    }, [0,1,2]);
+  }
+
+  requestAnimationFrame(loop3);
+}
+
+loop3();
+
+function startSim3() {
+  if (!running3) {
+    running3 = true;
+    loop3();
+  }
+}
+
+function stopSim3() {
+  running3 = false;
+}
+
+function resetSim3() {
+  running3 = false;
+  reset3();   // your existing reset()
+  draw3();    // redraw initial state
+}
+
+// ------------------- Lennard-Jones potential for three-body recombination ------------------
+function forceLJ(r) {
+  const eps = 1.0;     // depth
+  const sigma = 0.5;   // length scale
+
+  let absr = Math.abs(r) + 1e-3;
+
+  // F = -dV/dr
+  let sr6 = Math.pow(sigma / absr, 6);
+  let sr12 = sr6 * sr6;
+
+  let F = 24 * eps * (2*sr12 - sr6) / absr;
+
+  return -F * Math.sign(r);
+}
+
+
+
+const canvasLJ = document.getElementById("canvasLJ");
+const ctxLJ = canvasLJ.getContext("2d");
+
+let xLJ = [], vLJ = [], tLJ = 0;
+
+function resetLJ() {
+  xLJ = [-2, 0, 3.0];
+  vLJ = [1 - 0.5, 0 - 0.5, -2 - 0.5];
+  tLJ = 0;
+
+  Plotly.newPlot("velPlotLJ", [
+    {x: [], y: [], mode: "lines", name: "v1"},
+    {x: [], y: [], mode: "lines", name: "v2"},
+    {x: [], y: [], mode: "lines", name: "v3"}
+    ], {
+    title: 'Velocity vs Time',
+    xaxis: {title: 'Time'},
+    yaxis: {title: 'Velocity'},
+    showlegend: true
+});
+}
+
+resetLJ();
+
+function force3LJ(i) {
+  let F = 0;
+
+  for (let j=0; j<3; j++) {
+    if (i === j) continue;
+
+    let r = xLJ[i] - xLJ[j];
+    F += -forceLJ(r);  // minus because r = xi - xj
+  }
+
+  return F;
+}
+
+const dtLJ = 0.001;
+let counterLJ = 0;
+
+function stepLJ() {
+  let F_old = [0,0,0];
+
+  for (let i=0; i<3; i++) {
+    F_old[i] = force3LJ(i);
+  }
+
+  for (let i=0; i<3; i++) {
+    xLJ[i] += vLJ[i]*dtLJ + 0.5*F_old[i]*dtLJ*dtLJ;
+  }
+
+  let F_new = [0,0,0];
+  for (let i=0; i<3; i++) {
+    F_new[i] = force3LJ(i);
+  }
+
+  for (let i=0; i<3; i++) {
+    vLJ[i] += 0.5*(F_old[i] + F_new[i]) * dtLJ;
+  }
+
+  tLJ += dtLJ;
+}
+function drawLJ() {
+  ctxLJ.clearRect(0, 0, canvasLJ.width, canvasLJ.height);
+
+  const center = canvasLJ.width / 2;
+  const scale = 100;
+
+  for (let i=0; i<3; i++) {
+    let px = center + xLJ[i]*scale;
+
+    ctxLJ.beginPath();
+    ctxLJ.arc(px, 100, 10, 0, 2*Math.PI);
+    ctxLJ.fill();
+
+    ctxLJ.beginPath();
+    ctxLJ.moveTo(px, 80);
+    ctxLJ.lineTo(px + vLJ[i]*30, 80);
+    ctxLJ.stroke();
+  }
+}
+
+drawLJ();
+function loopLJ() {
+  if (!runningLJ) return;
+  for (let i=0; i<3; i++) stepLJ();
+  drawLJ();
+
+  counterLJ++;
+  if (counterLJ % 5 === 0) {
+    Plotly.extendTraces("velPlotLJ", {
+      x: [[tLJ],[tLJ],[tLJ]],
+      y: [[vLJ[0]],[vLJ[1]],[vLJ[2]]]
+    }, [0,1,2]);
+  }
+
+  requestAnimationFrame(loopLJ);
+}
+
+loopLJ();
+
+function startSimLJ() {
+    if (!runningLJ) {
+        runningLJ = true;
+        loopLJ();
+    }
+}
+
+function stopSimLJ() {
+    runningLJ = false;
+}
+
+function resetSimLJ() {
+    runningLJ = false;
+    resetLJ();   // your existing reset()
+    drawLJ();    // redraw initial state
+}
+
+</script>
+
+</body>
+</html>
